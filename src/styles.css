@@ -1,7 +1,5 @@
 .ghost-text {
-    white-space: pre-wrap;
-    background: transparent;
-    color: #ccc;
-    opacity: 0.5;
-    pointer-events: none;
+    background: none;
+    white-space: pre;
+    z-index: 1000; /* Ensure it appears above other elements */
   }
