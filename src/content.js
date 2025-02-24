@@ -154,9 +154,11 @@ dotenv.config();
 
 let openAiKey = process.env.OPENAI_KEY;
 
+// Listen for input on all text areas and input fields
 document.addEventListener("input", async (event) => {
   let target = event.target;
   
+  // Check if it's a textarea or input field
   if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
     let text = target.value;
     if (text.length > 5) {  // Start completion after 5 characters
@@ -169,6 +171,7 @@ document.addEventListener("input", async (event) => {
   }
 });
 
+// Function to get completion from OpenAI
 async function fetchCompletion(text) {
   try {
     const response = await fetch("https://api.openai.com/v1/completions", {
@@ -192,19 +195,26 @@ async function fetchCompletion(text) {
   }
 }
 
+// Function to display inline suggestion
 function showInlineSuggestion(inputElement, suggestion) {
   let existingHint = document.querySelector(".ai-suggestion");
   if (existingHint) existingHint.remove();
+
+  let rect = inputElement.getBoundingClientRect();
+  let fontSize = window.getComputedStyle(inputElement).fontSize;
+  let fontFamily = window.getComputedStyle(inputElement).fontFamily;
 
   let hint = document.createElement("span");
   hint.className = "ai-suggestion";
   hint.innerText = suggestion;
   hint.style.position = "absolute";
   hint.style.color = "gray";
-  hint.style.marginLeft = "5px";
-  hint.style.fontSize = window.getComputedStyle(inputElement).fontSize;
-  
-  inputElement.parentNode.appendChild(hint);
+  hint.style.fontSize = fontSize;
+  hint.style.fontFamily = fontFamily;
+  hint.style.left = `${rect.left}px`;
+  hint.style.top = `${rect.bottom + window.scrollY + 5}px`; // Position below the input/textarea
+
+  document.body.appendChild(hint);
   
   inputElement.addEventListener("keydown", (e) => {
     if (e.key === "Tab") {

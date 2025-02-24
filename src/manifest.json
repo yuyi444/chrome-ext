@@ -2,21 +2,28 @@
     "manifest_version": 3,
     "name": "AI Text Enhancer",
     "version": "1.0",
-    "description": "Autocomplete and improve text anywhere on the web using AI.",
-    "permissions": ["storage", "scripting", "activeTab"],
-    "host_permissions": ["<all_urls>"],
+    "description": "Enhance your text with OpenAI suggestions",
+    "permissions": [
+      "activeTab",
+      "storage"
+    ],
     "background": {
       "service_worker": "background.js"
     },
     "content_scripts": [
       {
         "matches": ["<all_urls>"],
-        "js": ["content.js"]
+        "js": ["content.js"],
+        "css": ["styles.css"]
       }
     ],
     "action": {
       "default_popup": "popup.html",
-      "default_icon": "icons/icon.png"
+      "default_icon": {
+        "16": "icons/16.png",
+        "48": "icons/48.png",
+        "128": "icons/128.png"
+      }
     }
   }
   
