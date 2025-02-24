@@ -1,84 +1,89 @@
-import * as InboxSDK from "@inboxsdk/core";
+// content.js
 
-// Load InboxSDK for Gmail integration (optional, can be removed if not needed)
-InboxSDK.load(2, "sdk_OpenAI_a19ee5a9fd").then(() => {
-  initGlobalEnhancer();
+let openAiKey = ""; // Store OpenAI key
+
+// Fetch API key from storage
+chrome.storage.sync.get(['OPENAI_KEY'], (result) => {
+  openAiKey = result.OPENAI_KEY || "";
 });
 
-// Use environment variable for OpenAI API key
-const API_KEY = process.env.OPENAI_KEY;
+document.addEventListener('focus', event => {
+  if (event.target.matches('textarea, input[type="text"], [contenteditable="true"]')) {
+    attachAutocomplete(event.target);
+  }
+}, true);
 
-function initGlobalEnhancer() {
-  document.addEventListener("focusin", (event) => {
-    const target = event.target;
+function attachAutocomplete(field) {
+  field.addEventListener('input', async function (event) {
+    const text = field.isContentEditable ? field.innerText : field.value;
+    if (!text.trim()) return;
 
-    if (
-      target.tagName === "TEXTAREA" ||
-      target.tagName === "INPUT" ||
-      target.isContentEditable
-    ) {
-      addEnhanceButton(target);
+    const suggestion = await fetchSuggestion(text);
+    if (suggestion) {
+      showSuggestion(field, suggestion);
+    }
+  });
+
+  field.addEventListener('keydown', function(event) {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      acceptSuggestion(field);
     }
   });
 }
 
-function addEnhanceButton(inputField) {
-  if (inputField.nextSibling?.classList?.contains("ai-enhance-btn")) return;
-
-  const button = document.createElement("button");
-  button.innerText = "✨ Enhance";
-  button.classList.add("ai-enhance-btn");
-  button.style.position = "absolute";
-  button.style.marginLeft = "5px";
-  button.style.padding = "5px";
-  button.style.background = "#007bff";
-  button.style.color = "#fff";
-  button.style.border = "none";
-  button.style.borderRadius = "5px";
-  button.style.cursor = "pointer";
-  button.style.fontSize = "12px";
-
-  button.onclick = async () => {
-    button.innerText = "🔄 Enhancing...";
-    button.disabled = true;
-    const originalText = inputField.value || inputField.innerText;
-    const improvedText = await generateText(originalText);
-    if (inputField.tagName === "TEXTAREA" || inputField.tagName === "INPUT") {
-      inputField.value = improvedText;
-    } else {
-      inputField.innerText = improvedText;
-    }
-    button.innerText = "✨ Enhance";
-    button.disabled = false;
-  };
-
-  inputField.parentNode.insertBefore(button, inputField.nextSibling);
-}
-
-async function generateText(inputText) {
+async function fetchSuggestion(inputText) {
   try {
-    const response = await fetch("https://api.openai.com/v1/completions", {
-      method: "POST",
+    const response = await fetch('https://api.openai.com/v1/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${API_KEY}`, // Uses the environment variable
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAiKey}`,
       },
       body: JSON.stringify({
         model: "text-davinci-003",
-        prompt: `Improve the following text:\n${inputText}`,
-        temperature: 0.7,
-        max_tokens: 500,
-        top_p: 1.0,
-        frequency_penalty: 0.0,
-        presence_penalty: 0.0,
+        prompt: inputText,
+        temperature: 0.5,
+        max_tokens: 50
       }),
     });
 
     const data = await response.json();
-    return data.choices?.[0]?.text?.trim() || "No suggestions";
+    return data.choices && data.choices[0].text ? data.choices[0].text.trim() : null;
   } catch (error) {
-    console.error("Error generating text:", error);
-    return inputText;
+    console.error('Error fetching suggestion:', error);
+    return null;
   }
 }
 
+function showSuggestion(field, suggestion) {
+  let suggestionElement = field.nextElementSibling;
+  if (!suggestionElement || !suggestionElement.classList.contains('autocomplete-suggestion')) {
+    suggestionElement = document.createElement('span');
+    suggestionElement.className = 'autocomplete-suggestion';
+    suggestionElement.style.position = 'absolute';
+    suggestionElement.style.color = '#ccc';
+
+    field.parentNode.insertBefore(suggestionElement, field.nextSibling);
+    positionSuggestion(field, suggestionElement);
+  }
+  suggestionElement.textContent = suggestion;
+}
+
+function acceptSuggestion(field) {
+  const suggestionElement = field.nextElementSibling;
+  if (suggestionElement && suggestionElement.classList.contains('autocomplete-suggestion')) {
+    if (field.isContentEditable) {
+      field.innerText += suggestionElement.textContent;
+    } else {
+      field.value += suggestionElement.textContent;
+    }
+    suggestionElement.remove();
+  }
+}
+
+function positionSuggestion(field, suggestionElement) {
+  const rect = field.getBoundingClientRect();
+  suggestionElement.style.top = `${rect.bottom + window.scrollY}px`;
+  suggestionElement.style.left = `${rect.left + window.scrollX}px`;
+}

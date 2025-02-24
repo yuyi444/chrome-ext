@@ -1,12 +1,7 @@
-button {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 10px;
-    border-radius: 5px;
-    cursor: pointer;
+.autocomplete-suggestion {
+    background: white;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 1000; 
+    font-size: inherit;
   }
-  button:hover {
-    background-color: #45a049;
-  }
-  
