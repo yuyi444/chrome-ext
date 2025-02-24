@@ -147,6 +147,7 @@ const createModal = (composeView, Widgets) => {
   disabledBtn()
 }*/
 
+
 import dotenv from 'dotenv';
 
 // Load environment variables from .env file
@@ -154,16 +155,16 @@ dotenv.config();
 
 let openAiKey = process.env.OPENAI_KEY;
 
-// Listen for input on all text areas and input fields
+// Listen for input on all text areas, input fields, and paragraphs
 document.addEventListener("input", async (event) => {
   let target = event.target;
-  
-  // Check if it's a textarea or input field
-  if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
-    let text = target.value;
+
+  // Check if it's a textarea, input field, or paragraph
+  if (target.tagName === "TEXTAREA" || target.tagName === "INPUT" || target.tagName === "P") {
+    let text = target.value || target.innerText;
     if (text.length > 5) {  // Start completion after 5 characters
       let suggestion = await fetchCompletion(text);
-      
+
       if (suggestion) {
         showInlineSuggestion(target, suggestion);
       }
@@ -211,15 +212,28 @@ function showInlineSuggestion(inputElement, suggestion) {
   hint.style.color = "gray";
   hint.style.fontSize = fontSize;
   hint.style.fontFamily = fontFamily;
-  hint.style.left = `${rect.left}px`;
-  hint.style.top = `${rect.bottom + window.scrollY + 5}px`; // Position below the input/textarea
+
+  // Positioning the suggestion based on the element's position
+  if (inputElement.tagName === "TEXTAREA" || inputElement.tagName === "INPUT") {
+    hint.style.left = `${rect.left}px`;
+    hint.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  } else if (inputElement.tagName === "P") {
+    // Adjusting for paragraph element positioning
+    hint.style.left = `${rect.left}px`;
+    hint.style.top = `${rect.bottom + window.scrollY + 5}px`;
+  }
 
   document.body.appendChild(hint);
-  
+
+  // Handling "Tab" key to insert the suggestion
   inputElement.addEventListener("keydown", (e) => {
     if (e.key === "Tab") {
       e.preventDefault();
-      inputElement.value += suggestion;
+      if (inputElement.tagName === "TEXTAREA" || inputElement.tagName === "INPUT") {
+        inputElement.value += suggestion;
+      } else if (inputElement.tagName === "P") {
+        inputElement.innerText += suggestion;
+      }
       hint.remove();
     }
   });
