@@ -3,7 +3,9 @@
     "name": "Inline Text Completion",
     "version": "1.0",
     "description": "Provides inline text suggestions powered by OpenAI.",
-    "permissions": ["storage"],
+    "permissions": [
+      "storage"
+    ],
     "background": {
       "service_worker": "background.js",
       "type": "module"
@@ -22,3 +24,4 @@
       }
     ]
   }
+  
