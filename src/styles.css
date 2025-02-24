@@ -1,5 +1,12 @@
-.ghost-text {
-    background: none;
-    white-space: pre;
-    z-index: 1000; /* Ensure it appears above other elements */
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
   }
+  button:hover {
+    background-color: #45a049;
+  }
+  

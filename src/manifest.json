@@ -3,9 +3,7 @@
     "name": "Inline Text Completion",
     "version": "1.0",
     "description": "Provides inline text suggestions powered by OpenAI.",
-    "permissions": [
-      "storage"
-    ],
+    "permissions": ["storage", "contextMenus", "scripting", "activeTab"],
     "background": {
       "service_worker": "background.js",
       "type": "module"
@@ -19,9 +17,16 @@
     ],
     "web_accessible_resources": [
       {
-        "resources": ["loader.html"],
+        "resources": ["icon.png"],
         "matches": ["<all_urls>"]
       }
-    ]
+    ],
+    "action": {
+      "default_icon": {
+        "16": "icon.png",
+        "48": "icon.png",
+        "128": "icon.png"
+      }
+    }
   }
   

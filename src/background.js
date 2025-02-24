@@ -1,15 +1,28 @@
-// background.js
-
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('Inline Text Completion Extension Installed');
+    chrome.contextMenus.create({
+      id: "ai-suggestion",
+      title: "Improve with AI",
+      contexts: ["editable"]
+    });
   });
   
-  // Example on how to listen for the key requests (ensure you have some UI for this)
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'getKey') {
-      chrome.storage.sync.get(['OPENAI_KEY'], (result) => {
-        sendResponse({ key: result.OPENAI_KEY });
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === "ai-suggestion") {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: improveText
       });
-      return true; // Keep the messaging channel open for sendResponse
     }
   });
+  
+  function improveText() {
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement.tagName === "TEXTAREA" || activeElement.isContentEditable) {
+      chrome.runtime.sendMessage({ text: activeElement.value }, (response) => {
+        if (response && response.suggestion) {
+          activeElement.value = response.suggestion;
+        }
+      });
+    }
+  }
+  

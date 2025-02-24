@@ -1,105 +1,84 @@
-let openAiKey = ""; // To store the OpenAI key safely
+import * as InboxSDK from "@inboxsdk/core";
 
-// Fetch the OpenAI key from Chrome storage
-chrome.storage.sync.get(['OPENAI_KEY'], (result) => {
-  if (result.OPENAI_KEY) {
-    openAiKey = result.OPENAI_KEY;
-  } else {
-    console.error("OpenAI API key is not found.");
-  }
+// Load InboxSDK for Gmail integration (optional, can be removed if not needed)
+InboxSDK.load(2, "sdk_OpenAI_a19ee5a9fd").then(() => {
+  initGlobalEnhancer();
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Apply handlers to text fields, paragraphs, and articles on page load
-  document.querySelectorAll('textarea, input[type="text"], p, article').forEach((field) => {
-    field.addEventListener('input', handleInput);
-    field.addEventListener('keydown', handleKeydown);
-  });
-});
+// Use environment variable for OpenAI API key
+const API_KEY = process.env.OPENAI_KEY;
 
-// Address potential dynamically added fields (including paragraphs and articles)
-document.body.addEventListener('focusin', (event) => {
-  const field = event.target;
-  if (field.tagName === 'TEXTAREA' || field.type === 'text' || field.tagName === 'P' || field.tagName === 'ARTICLE') {
-    field.addEventListener('input', handleInput);
-    field.addEventListener('keydown', handleKeydown);
-  }
-});
+function initGlobalEnhancer() {
+  document.addEventListener("focusin", (event) => {
+    const target = event.target;
 
-async function handleInput(event) {
-  const field = event.target;
-  const text = field.innerText || field.value;
-
-  if (!text.trim()) return; // Don't suggest for empty fields
-
-  const suggestion = await getSuggestedText(text);
-
-  let ghostElement = field.nextElementSibling;
-  if (!ghostElement || !ghostElement.classList.contains('ghost-text')) {
-    ghostElement = document.createElement('span');
-    ghostElement.className = 'ghost-text';
-    ghostElement.style.position = 'absolute';
-    ghostElement.style.opacity = 0.5;
-    ghostElement.style.pointerEvents = 'none';
-    ghostElement.style.font = window.getComputedStyle(field).font;
-    ghostElement.style.color = '#ccc';
-    ghostElement.style.whiteSpace = 'pre-wrap'; // Preserve line breaks
-
-    field.parentNode.insertBefore(ghostElement, field.nextSibling);
-  }
-
-  ghostElement.innerText = suggestion;
-  positionGhostText(field, ghostElement);
-}
-
-function handleKeydown(event) {
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    const field = event.target;
-    const ghostText = document.querySelector('.ghost-text');
-
-    if (ghostText) {
-      if (field.tagName === 'TEXTAREA' || field.tagName === 'INPUT') {
-        field.value += ghostText.innerText;
-      } else {
-        field.innerText += ghostText.innerText;
-      }
-      ghostText.remove();
+    if (
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "INPUT" ||
+      target.isContentEditable
+    ) {
+      addEnhanceButton(target);
     }
-  }
+  });
 }
 
-async function getSuggestedText(inputText) {
+function addEnhanceButton(inputField) {
+  if (inputField.nextSibling?.classList?.contains("ai-enhance-btn")) return;
+
+  const button = document.createElement("button");
+  button.innerText = "✨ Enhance";
+  button.classList.add("ai-enhance-btn");
+  button.style.position = "absolute";
+  button.style.marginLeft = "5px";
+  button.style.padding = "5px";
+  button.style.background = "#007bff";
+  button.style.color = "#fff";
+  button.style.border = "none";
+  button.style.borderRadius = "5px";
+  button.style.cursor = "pointer";
+  button.style.fontSize = "12px";
+
+  button.onclick = async () => {
+    button.innerText = "🔄 Enhancing...";
+    button.disabled = true;
+    const originalText = inputField.value || inputField.innerText;
+    const improvedText = await generateText(originalText);
+    if (inputField.tagName === "TEXTAREA" || inputField.tagName === "INPUT") {
+      inputField.value = improvedText;
+    } else {
+      inputField.innerText = improvedText;
+    }
+    button.innerText = "✨ Enhance";
+    button.disabled = false;
+  };
+
+  inputField.parentNode.insertBefore(button, inputField.nextSibling);
+}
+
+async function generateText(inputText) {
   try {
-    const response = await fetch('https://api.openai.com/v1/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${API_KEY}`, // Uses the environment variable
       },
       body: JSON.stringify({
         model: "text-davinci-003",
-        prompt: inputText,
-        temperature: 0.5,
-        max_tokens: 50,
+        prompt: `Improve the following text:\n${inputText}`,
+        temperature: 0.7,
+        max_tokens: 500,
+        top_p: 1.0,
+        frequency_penalty: 0.0,
+        presence_penalty: 0.0,
       }),
     });
 
     const data = await response.json();
-    if (data.choices && data.choices[0].text) {
-      return data.choices[0].text.trim();
-    } else {
-      return ""; // In case the response doesn't include the text
-    }
+    return data.choices?.[0]?.text?.trim() || "No suggestions";
   } catch (error) {
-    console.error('Error fetching suggestion:', error);
-    return ""; // Return empty on error
+    console.error("Error generating text:", error);
+    return inputText;
   }
 }
 
-function positionGhostText(field, ghostElement) {
-  const rect = field.getBoundingClientRect();
-  ghostElement.style.top = `${rect.top + window.scrollY + rect.height + 5}px`; // Position below the field
-  ghostElement.style.left = `${rect.left + window.scrollX}px`;
-  ghostElement.style.fontSize = window.getComputedStyle(field).fontSize;
-}
