@@ -1,4 +1,4 @@
-import * as InboxSDK from '@inboxsdk/core';
+/*import * as InboxSDK from '@inboxsdk/core';
 
 const disabledBtn = (disabled = true) => {
   try {
@@ -145,4 +145,72 @@ const createModal = (composeView, Widgets) => {
   });
 
   disabledBtn()
+}*/
+
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
+
+let openAiKey = process.env.OPENAI_KEY;
+
+document.addEventListener("input", async (event) => {
+  let target = event.target;
+  
+  if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") {
+    let text = target.value;
+    if (text.length > 5) {  // Start completion after 5 characters
+      let suggestion = await fetchCompletion(text);
+      
+      if (suggestion) {
+        showInlineSuggestion(target, suggestion);
+      }
+    }
+  }
+});
+
+async function fetchCompletion(text) {
+  try {
+    const response = await fetch("https://api.openai.com/v1/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openAiKey}`
+      },
+      body: JSON.stringify({
+        model: "text-davinci-003",
+        prompt: text,
+        max_tokens: 20
+      })
+    });
+
+    let data = await response.json();
+    return data.choices[0]?.text.trim() || "";
+  } catch (error) {
+    console.error("Error fetching AI completion:", error);
+    return "";
+  }
+}
+
+function showInlineSuggestion(inputElement, suggestion) {
+  let existingHint = document.querySelector(".ai-suggestion");
+  if (existingHint) existingHint.remove();
+
+  let hint = document.createElement("span");
+  hint.className = "ai-suggestion";
+  hint.innerText = suggestion;
+  hint.style.position = "absolute";
+  hint.style.color = "gray";
+  hint.style.marginLeft = "5px";
+  hint.style.fontSize = window.getComputedStyle(inputElement).fontSize;
+  
+  inputElement.parentNode.appendChild(hint);
+  
+  inputElement.addEventListener("keydown", (e) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      inputElement.value += suggestion;
+      hint.remove();
+    }
+  });
 }

@@ -1,4 +1,4 @@
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("AI Email Enhancer Extension Installed.");
+    console.log("AI Text Enhancer Installed!");
   });
   

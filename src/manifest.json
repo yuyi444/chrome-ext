@@ -1,29 +1,22 @@
 {
-    "name": "Open Ai",
-    "description": "Open ai chrome extension for gmail",
-    "version": "0.1.0",
-    "content_scripts": [
-      {
-        "matches": [
-          "https://mail.google.com/*"
-        ],
-        "js": [
-          "content.js"
-        ],
-        "css": [
-          "content.css"
-        ],
-        "run_at": "document_end"
-      }
-    ],
+    "manifest_version": 3,
+    "name": "AI Text Enhancer",
+    "version": "1.0",
+    "description": "Autocomplete and improve text anywhere on the web using AI.",
+    "permissions": ["storage", "scripting", "activeTab"],
+    "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js"
     },
-    "permissions": [
-      "scripting"
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+      }
     ],
-    "host_permissions": [
-      "https://mail.google.com/"
-    ],
-    "manifest_version": 3
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icons/icon.png"
+    }
   }
+  
