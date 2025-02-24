@@ -16,11 +16,7 @@
         "js": ["content.js"],
         "css": ["styles.css"]
       }
-    ],
-    "action": {
-        "default_popup": "popup.html",
-        "default_icon": "icons/icon.png"
-      }
+    ]
   }
   
   
