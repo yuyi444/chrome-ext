@@ -1,4 +1,5 @@
+// background.js
+
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("AI Text Enhancer Installed!");
+    console.log('Inline Text Completion Extension Installed');
   });
-  

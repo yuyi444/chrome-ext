@@ -1,12 +1,9 @@
 {
     "manifest_version": 3,
-    "name": "AI Text Enhancer",
+    "name": "Inline Text Completion",
     "version": "1.0",
-    "description": "Enhance your text with OpenAI suggestions",
-    "permissions": [
-      "activeTab",
-      "storage"
-    ],
+    "description": "Provides inline text suggestions powered by OpenAI.",
+    "permissions": ["storage"],
     "background": {
       "service_worker": "background.js"
     },
@@ -18,5 +15,3 @@
       }
     ]
   }
-  
-  
