@@ -1,0 +1,8 @@
+.autocomplete-shadow {
+    position: absolute;
+    color: gray;
+    pointer-events: none;
+    opacity: 0.6;
+    font-size: inherit;
+    white-space: nowrap;
+}
