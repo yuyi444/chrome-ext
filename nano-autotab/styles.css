@@ -1,8 +1,24 @@
-.autocomplete-shadow {
+/*moved to autocomplete file*/
+
+.autocomplete-overlay {
     position: absolute;
-    color: gray;
     pointer-events: none;
-    opacity: 0.6;
+    color: rgb(145, 144, 144);
+    background: transparent;
+    font-family: inherit;
     font-size: inherit;
-    white-space: nowrap;
+    line-height: inherit;
+    padding: inherit;
+    border: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    z-index: 10000;
+}
+.autocomplete-overlay .highlighted-suggestion {
+    color: #555;
+    background-color: #e0e0e0;
+}
+.autocomplete-overlay .remaining-text {
+    color: #111;
 }

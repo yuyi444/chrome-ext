@@ -1,27 +1,31 @@
 {
-    "manifest_version": 3,
-    "name": "AI Inline Text Completion",
-    "version": "1.0",
-    "permissions": ["aiLanguageModelOriginTrial", "activeTab"],
-    "trial_tokens": [
-      "ArI8s9R+bvBEP3XI1KFiU7uE53ZiFSy/UvQxcFnzMN12jt0Wb6rYAIFzge9hqcyUz27qEk/krud950biRxoyVw8AAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYWZpbmliYmVnZG9tb2hta29ncGhtb2llbWZuZGpnbWUiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"
-    ],
-    "background": {
-      "service_worker": "background.js"
-    },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content.js"],
-        "run_at": "document_idle"
-      }
-    ],
-    "action": {
-      "default_popup": "popup.html",
-      "default_icon": {
-        "16": "icon.png",
-        "48": "icon.png",
-        "128": "icon.png"
-      }
+  "manifest_version": 3,
+  "name": "AI Inline Text Completion",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting", "aiLanguageModelOriginTrial"],
+  "trial_tokens": [
+    "ArI8s9R+bvBEP3XI1KFiU7uE53ZiFSy/UvQxcFnzMN12jt0Wb6rYAIFzge9hqcyUz27qEk/krud950biRxoyVw8AAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYWZpbmliYmVnZG9tb2hta29ncGhtb2llbWZuZGpnbWUiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["autocomplete.js"],
+      "run_at": "document_idle"
     }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
   }
+}

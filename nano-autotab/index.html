@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Autocomplete Chrome Extension Test Page</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            max-width: 800px;
+            margin: 80px auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #ffe6f2; /* Soft pink background */
+            color: #333;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+
+        h1 {
+            margin-bottom: 50px;
+            text-align: center;
+            color: #ff69b4; /* Pink color */
+        }
+
+        h2 {
+            color: #ff69b4;
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            width: 97%;
+            height: 200px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ff99ac;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            background-color: #fff8fb;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: #ff69b4;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 20px auto; /* Center with auto margin */
+            display: block; /* Block-level for margin to work */
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #ff449f;
+           
+        }
+
+
+    </style>
+</head>
+<body>
+    <h1>Autocomplete Chrome Extension Test Page</h1>
+
+    <div class="section">
+        <p>Begin typing to test:</p>
+        <textarea id="test-textarea" class="large-textarea"></textarea>
+        <button onclick="eraseTextarea()">Erase Text</button>
+    </div>
+
+    <script>
+        function eraseTextarea() {
+            const textarea = document.getElementById('test-textarea');
+            textarea.value = '';
+        }
+    </script>
+</body>
+</html>

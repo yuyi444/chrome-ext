@@ -1,47 +1,91 @@
+let session = null; 
+
+//checking if our gemini nano model is readily
+async function initDefaults(){
+    try{
+        console.log(chrome);
+        const defaults = await chrome.aiOriginTrial.languageModel.capabilities();
+        console.log("Model defaults: ", defaults);
+        if (defaults.available !== 'readily'){
+            console.error(`Model not yet available (current state: "${defaults.available}")`);
+            return null;
+        }
+        return defaults;
+    } catch (error) {
+        console.error("Failed to initialize model: ", error);
+        return null;
+    }
+}
+
+//creating an AI session!
 async function createAISession() {
     try {
-      const { available } = await chrome.aiOriginTrial.languageModel.capabilities();
-      if (available !== 'no') {
-        currentSession = await chrome.aiOriginTrial.languageModel.create({
-          systemPrompt: `
-            You are a text completion engine. Your task is to extend incomplete fragments of user input.
-            - Focus purely on providing the next few words to seamlessly continue the user input.
-            - Avoid starting new ideas or providing complete responses.
-            - Complete partial sentences by predicting logical continuations.
-            - Do not introduce or echo advice or pleasantries.
-          `,
-        });
-        console.log("AI Session Created");
-      } else {
-        console.error("Model is not available.");
-      }
+        const params = { 
+            systemPrompt: `
+            You are a text completion engine.
+            Your primary role is to craft seamless, one-sentence extensions that naturally follow user inputs in English.
+            
+            **Guidelines:**
+            
+            1. Mirror the user's writing style, tone, and formality.
+            2. Develop concise responses that flow naturally and maintain correct spacing.
+            3. Ensure responses are grammatically correct and easily understood.
+            4. Avoid redundancy and do not repeat words from the user's input unless necessary for context.
+            5. Create direct continuations without additional commentary or explanations.
+            6. Produce completions without engaging in conversational interactions with the user.
+            7. Enhance the user's input with contextually appropriate completions.
+            8. Maintain engagement by delivering informative yet succinct extensions.
+            9. Avoid including personal or specific names unless explicitly provided by the user.
+            10. Ensure that spaces are appropriately placed between words for readability.
+            11. Do not include unnecessary symbols like quotation marks, unless they are part of standard punctuation.
+
+            **Examples**:
+            User's input: "I love to read books about"
+            Your response should be: history and science fiction.
+            
+            User's input: "The weather today is "
+            Your response should be: sunny and warm, perfect for a picnic.
+            
+            User's input: "My nam"
+            Your response should be: e is
+            
+            In no case should you assume or suggest explicit personal information or specific names.
+            `
+        }
+        if (!session) { // If no session exists, start one
+            const defaults = await initDefaults();
+            if (defaults) {
+                session = await chrome.aiOriginTrial.languageModel.create(params);   
+                console.log("Session created successfully.");         
+            }
+        }
+        return session;
     } catch (error) {
-      console.error("Failed to create AI session:", error);
+        console.error("Error creating AI session: ", error);
     }
-  }
-  
-  createAISession();
-  
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === "getCompletion" && currentSession) {
-      const trimmedText = request.text.trim();
-  
-      currentSession.prompt(trimmedText, { maxTokens: 5, temperature: 0.2 }).then(response => {
-        sendResponse({ completion: filterCompletion(trimmedText, response) });
-      }).catch(error => {
-        console.error("Error fetching completion:", error);
-        sendResponse({ completion: "" });
-      });
-  
-      return true; // Use sendResponse asynchronously.
+}
+
+//sends prompt to llm for autocompletion task
+async function sendPrompt(text){
+    const currentSession = await createAISession();
+    if (!currentSession){
+        console.error("Failed to initialize session");
     }
-  });
-  
-  function filterCompletion(input, completion) {
-    const inputLength = input.length;
-    if (completion.length > inputLength) {
-      // Return only the completion part that adds new information
-      return completion.slice(inputLength);
+    const result = await currentSession.prompt(text);
+    console.log("Completion result: ");
+    return result;
+}
+
+//receives messages from the autocomplete script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("Received message: ", message);
+    if (message.type === 'GET_COMPLETION'){
+        sendPrompt(message.text)
+            .then(completion => sendResponse({completion}))
+            .catch(error => sendResponse({error: error.message}));
+        return true;
     }
-    return "";
-  }
+})
+
+//creates a new AI session 
+createAISession().then(() => console.log("AI session complete"));
