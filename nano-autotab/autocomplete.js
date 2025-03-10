@@ -1,14 +1,12 @@
-// ----------------------
-// Styling for autocomplete suggestion
-// ----------------------
+//styling for autocomplete suggestion
 const style = document.createElement('style'); 
 style.textContent = `
-.autocomplete-overlay {
+.suggestion-overlay {
     position: absolute;
     pointer-events: none;
     color: rgb(145, 144, 144);
     background: transparent;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: inherit;
     font-size: inherit;
     line-height: inherit;
     padding: inherit;
@@ -18,21 +16,16 @@ style.textContent = `
     word-wrap: break-word;
     z-index: 10000;
 }
-.autocomplete-overlay .remaining-text {
-    color: #111;
+
+.suggestion-overlay .after-text {
+    color: #000; /* Make text after cursor black instead of gray */
 }
 `;
+
 document.head.appendChild(style);
 
-// ----------------------
-// Global Variables
-// ----------------------
-let suggestionOverlay = null;
-let currentInputField = null;
-
-// ----------------------
-// Utility Functions
-// ----------------------
+let activeOverlay = null;
+let activeInput = null;
 
 // Check if an element is a valid text input
 const isInputField = (element) => {
@@ -75,274 +68,330 @@ const setInputText = (element, text) => {
     }
 };
 
-// Get the cursor position
+
+
 const getCursorPos = (element) => {
-    if (element.selectionStart !== null) {
-        return element.selectionStart;
-    } else if (element.getAttribute && element.getAttribute('contenteditable') === 'true') {
+    if (element.nodeName === 'TEXTAREA' || element.nodeName === 'INPUT') {
+        return element.selectionStart; //pos of cursor
+    } else if (element.getAttribute && element.getAttribute('contenteditable') === 'true'){
         const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const selectionRange = selection.getRangeAt(0);
-            if (element.contains(selectionRange.startContainer)) {
+        if (selection.rangeCount > 0){
+            selectionRange = selection.getRangeAt(0);
+            if (element.contains(selectionRange.startContainer)){
                 return selectionRange.startOffset;
             }
         }
     }
-    return 0;
-};
+}
 
-// Return the text before the cursor position
-const getTextPreCursor = (element) => {
+const getTextBeforeCursor = (element) => {
     const text = getInputText(element);
     const cursorPos = getCursorPos(element);
-    return text.substring(0, cursorPos);
-};
+    return text.substring(0,cursorPos);
+}
 
-// Return the text after the cursor position
-const getTextPostCursor = (element) => {
+const getTextAfterCursor = (element) => {
     const text = getInputText(element);
     const cursorPos = getCursorPos(element);
     return text.substring(cursorPos);
-};
+}
 
-// ----------------------
-// Overlay Management
-// ----------------------
 
-// Create the overlay element for showing suggestions
+//create overlay element to show suggestion next to text
 const createOverlay = () => { 
     const overlay = document.createElement('div');
-    overlay.className = 'autocomplete-overlay';  
+    overlay.className = 'suggestion-overlay';  
     document.body.appendChild(overlay);
     return overlay;
-};
+}
 
-// Update overlay's styling and position based on the current input field
+//update styling of overlay to match text input
 const updateOverlay = () => {
-    if (!currentInputField || !suggestionOverlay) return;
-    const computedStyle = window.getComputedStyle(currentInputField);
-
-    suggestionOverlay.style.font = computedStyle.font;
-    suggestionOverlay.style.fontSize = computedStyle.fontSize;
-    suggestionOverlay.style.fontFamily = computedStyle.fontFamily;
-    suggestionOverlay.style.lineHeight = computedStyle.lineHeight;
-    suggestionOverlay.style.whiteSpace = computedStyle.whiteSpace;
-    
-    suggestionOverlay.style.width = `${currentInputField.offsetWidth}px`;
-    suggestionOverlay.style.height = `${currentInputField.offsetHeight}px`;
-    suggestionOverlay.style.padding = computedStyle.padding;
-    
-    const rect = currentInputField.getBoundingClientRect();
-    suggestionOverlay.style.top = `${rect.top + window.scrollY}px`;
-    suggestionOverlay.style.left = `${rect.left + window.scrollX}px`;
-};
-
-// ----------------------
-// Autocomplete Logic
-// ----------------------
-
-// Insert the autocomplete suggestion into the input field
-const insertCompletion = (element, currentText, completion) => {
-    if (!element || !completion) return;
-    const cursorPosition = getCursorPos(element);
-    const newCompletion = completion.startsWith(currentText) 
-        ? completion.slice(currentText.length) 
-        : completion;
-    const currentTextValue = getInputText(element);
-    const newText = currentText + newCompletion + currentTextValue.slice(cursorPosition);
-    setInputText(element, newText);
-    if (element.setSelectionRange) {
-        element.setSelectionRange(cursorPosition + newCompletion.length, cursorPosition + newCompletion.length);
+    if (!activeInput || !activeOverlay){
+        return;
     }
-};
+    //get current style of textarea
+    const computedStyle = window.getComputedStyle(activeInput);
 
-// Highlight the suggestion by splitting overlay content into spans
-const highlightSuggestion = (startPos, length) => {
-    if (!suggestionOverlay || !suggestionOverlay.textContent) return;
-    const fullText = suggestionOverlay.textContent;
-    const textBefore = fullText.substring(0, startPos);
-    const suggestion = fullText.substring(startPos, startPos + length);
-    const textAfter = fullText.substring(startPos + length);
+    //font styling
+    activeOverlay.style.font = computedStyle.font;
+    activeOverlay.style.fontSize = computedStyle.fontSize;
+    activeOverlay.style.fontFamily = computedStyle.fontFamily;
+    activeOverlay.style.lineHeight = computedStyle.lineHeight;
+    activeOverlay.style.letterSpacing = computedStyle.letterSpacing;
+    activeOverlay.style.textIndent = computedStyle.textIndent;
+    activeOverlay.style.whiteSpace = computedStyle.whiteSpace;
 
-    suggestionOverlay.innerHTML = '';
+    //activeOverlay.style.backgroundColor = computedStyle.backgroundColor;
+    
+    if (activeInput.nodeName === 'TEXTAREA' || activeInput.nodeName === 'INPUT') { //textarea and input
+        activeOverlay.style.width = computedStyle.width;
+        activeOverlay.style.height = computedStyle.height;
+        
+        activeOverlay.style.padding = computedStyle.padding;
 
-    const beforeSpan = document.createElement('span');
-    beforeSpan.textContent = textBefore;
+        activeOverlay.style.border = computedStyle.border;
+        activeOverlay.style.boxSizing = computedStyle.boxSizing;
+    } else if (activeInput.getAttribute && activeInput.getAttribute('contenteditable') === 'true') { //editable div
+        activeOverlay.style.width = `${activeInput.offsetWidth}px`;
+        activeOverlay.style.height = `${activeInput.offsetHeight}px`;
 
-    const suggestionSpan = document.createElement('span');
-    suggestionSpan.className = 'suggestion-highlight';
-    suggestionSpan.textContent = suggestion;
+        activeOverlay.style.padding = computedStyle.padding;
+    }
+    
+    //positioning
+    const rect = activeInput.getBoundingClientRect();
+    activeOverlay.style.top = `${rect.top + window.scrollY}px`;
+    activeOverlay.style.left = `${rect.left + window.scrollX}px`;
 
-    const afterSpan = document.createElement('span');
-    afterSpan.className = 'after-text';
-    afterSpan.textContent = textAfter;
+}
 
-    suggestionOverlay.appendChild(beforeSpan);
-    suggestionOverlay.appendChild(suggestionSpan);
-    suggestionOverlay.appendChild(afterSpan);
-};
+//check for tab to accept
+const handleKeydown = (event) => {
+    if (!activeOverlay || activeOverlay.textContent === ''){
+        return;
+    }
+    if (event.key === 'Tab'){ //accept suggestion
+        event.preventDefault();
+        setInputText(activeInput, activeOverlay.textContent);
+        activeInput.value = activeOverlay.textContent;
+    }
+    //clear suggestion if anything else or after accepting
+    activeOverlay.textContent = '';
+}
 
-// Communicate with the background script to get the completion
+//clear when input area out of focus
+const handleBlur = (event) => {
+    if (activeOverlay) {
+        activeOverlay.remove();
+        activeOverlay = null;
+        activeInput = null;
+    }
+    handleStopType.cancel();
+}
+
+const handleFocus = (event) => {
+    const textInput = event.target;
+    // if not text, stop
+    if (! isInputField(textInput)){
+        return;
+    }
+    if (activeOverlay) { //cleanup if another overlay exists
+        activeOverlay.remove();
+        activeOverlay = null;
+    }
+    //set active text area and make overlay
+    activeOverlay = document.createElement('div');
+    activeOverlay.className = 'suggestion-overlay';
+    document.body.appendChild(activeOverlay);
+    activeInput = textInput;
+    //update positioning and styling
+    updateOverlay();
+}
+
+const resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries){
+        if (entry.target === activeInput && activeOverlay){
+            updateOverlay();
+        }
+    }
+});
+
+
+const setupTextInput = (textInput) => {
+    if (! isInputField(textInput)){
+        return;
+    }
+    //event listeners
+    textInput.addEventListener('input', handleStopType); //add listener to handle typing
+    textInput.addEventListener('keydown', handleKeydown); //tab accept
+    textInput.addEventListener('blur', handleBlur); //clear when out of focus
+    textInput.addEventListener('focus', handleFocus); //add overlay when in focus
+
+    resizeObserver.observe(textInput);
+}
+
+
+//handle deletion
+const cleanupTextInput = (textInput) => {
+    if (! isInputField(textInput)){
+        return;
+    }
+    resizeObserver.unobserve(textInput);
+    if (textInput === activeInput) {
+        cleanupOverlay();
+    }
+    
+    textInput.removeEventListener('input', handleStopType); 
+    textInput.removeEventListener('keydown', handleKeydown); 
+    textInput.removeEventListener('blur', handleBlur); 
+    textInput.removeEventListener('focus', handleFocus); 
+}
+
+const cleanupOverlay = () => {
+    if (activeOverlay) {
+        activeOverlay.remove();
+        activeOverlay = null;
+        activeInput = null;
+    }
+}
+
+
+
+//communicates with background services to autocomplete
 const autocomplete = async (event) => {
-    if (!currentInputField || !suggestionOverlay) {
+    if (!activeInput || !activeOverlay){
         return;
     }
 
-    const textPreCursor = getTextPreCursor(currentInputField);  
-    const textPostCursor = getTextPostCursor(currentInputField); 
-    
-    console.log("Current text: ", textPreCursor + textPostCursor);
+    const textBeforeCursor = getTextBeforeCursor(activeInput);
+    const textAfterCursor = getTextAfterCursor(activeInput); 
 
-    if (!textPreCursor || textPreCursor.trim() === '') {
-        suggestionOverlay.textContent = '';
+    const currentText = textBeforeCursor + textAfterCursor; //getInputText(activeInput);
+    console.log("Text before cursor: ", textBeforeCursor);
+    console.log("Text after cursor: ", textAfterCursor);
+    console.log("Current text: ", currentText);  
+
+    if (!textBeforeCursor || textBeforeCursor.trim() === '') {
+        if (activeOverlay) {
+            activeOverlay.textContent = '';
+        }
         return;
     }
 
     try {
         console.log("sending request to bg script...");
-        const response = await chrome.runtime.sendMessage({
+        const response = await chrome.runtime.sendMessage({ //send message to background
             type: 'GET_COMPLETION',
-            text: textPreCursor
+            text: textBeforeCursor
         });
-
+        
         console.log("received response:", response);
 
-        if (!response || response.error) {
-            console.error("Error getting completion: ", response?.error || "No response");
-            suggestionOverlay.textContent = '';
+        if (!response) {
+            console.error("No response received from background script");
+            activeOverlay.textContent = '';
             return;
         }
 
-        let suggestionText = response.completion;
-        if (suggestionText) {
+        if (response.error){
+            console.error("Error getting completion: ", response.error);
+            activeOverlay.textContent = '';
+            return;
+        }
+        
+        const suggestionText = response.completion;
+        if (suggestionText){
+        //    activeOverlay.textContent = currentText + suggestionText;
+            const combinedText = textBeforeCursor + suggestionText + textAfterCursor;
+            activeOverlay.textContent = combinedText;
 
-            // ✅ Only display the new suggested text that comes after the cursor
-            suggestionOverlay.textContent = suggestionText;
-            
+            highlightSuggestion(textBeforeCursor.length, suggestionText.length);
+
             console.log("Autocomplete suggestion: ", suggestionText);
+            console.log("Combined text: ", currentText + suggestionText);
         } else {
             console.error("No completion received in response");
-            suggestionOverlay.textContent = '';
+            activeOverlay.textContent = '';
         }
+
     } catch (error) {
         console.log("Error getting autocomplete suggestion: ", error);
-        suggestionOverlay.textContent = '';
+        activeOverlay.textContent = '';
     }
-};
+}
+
+const highlightSuggestion = (startPos, length) => {
+    if (!activeOverlay || !activeOverlay.textContent) return;
+    
+    const fullText = activeOverlay.textContent;
+    const textBefore = fullText.substring(0, startPos);
+    const suggestion = fullText.substring(startPos, startPos + length);
+    const textAfter = fullText.substring(startPos + length);
+
+    activeOverlay.innerHTML = '';
+
+    // create span for non-highlighted part before suggestion
+    const beforeSpan = document.createElement('span');
+    beforeSpan.textContent = textBefore;
+
+    // create span for highlighted suggestion
+    const suggestionSpan = document.createElement('span');
+    suggestionSpan.className = 'suggestion-highlight';
+    suggestionSpan.textContent = suggestion;
+
+    // create span for part after suggestion
+    const afterSpan = document.createElement('span');
+    afterSpan.className = 'after-text'; 
+    afterSpan.textContent = textAfter;
+
+    // clear and append spans
+    activeOverlay.appendChild(beforeSpan);
+    activeOverlay.appendChild(suggestionSpan);
+    activeOverlay.appendChild(afterSpan);
+}
 
 
-
-
-
-// ----------------------
-// Event Handlers & Debouncing
-// ----------------------
-
-// Debounce function to limit autocomplete calls while typing
+//debouncer function
 const debounce = (callback, wait) => {
     let timeoutID = null;
-    const debounced = (...args) => {
+    const debouncer = (...args) => {
         window.clearTimeout(timeoutID);
         timeoutID = window.setTimeout(() => {
             callback(...args);
         }, wait);
-    };
-    debounced.cancel = () => {
+    }
+    //add cancellability
+    debouncer.cancel = () => {
         window.clearTimeout(timeoutID);
         timeoutID = null;
-    };
-    return debounced;
-};
+    }
+    return debouncer;
+}
+
+//debounced autocomplete
 const handleStopType = debounce(autocomplete, 3000);
 
-// Accept suggestion on Tab press
-const handleKeydown = (event) => {
-    if (!suggestionOverlay || suggestionOverlay.textContent === '') return;
-    if (event.key === 'Tab') {
-        event.preventDefault();
-        insertCompletion(currentInputField, getTextPreCursor(currentInputField), suggestionOverlay.textContent);
-        suggestionOverlay.textContent = '';
-    }
-};
 
-// Clear overlay and cancel pending debounce on blur
-const handleBlur = (event) => {
-    if (suggestionOverlay) {
-        suggestionOverlay.remove();
-        suggestionOverlay = null;
-        currentInputField = null;
-    }
-    handleStopType.cancel();
-};
-
-// Set up overlay when input gains focus
-const handleFocus = (event) => {
-    const textInput = event.target;
-    if (!isInputField(textInput)) return;
-    if (suggestionOverlay) {
-        suggestionOverlay.remove();
-        suggestionOverlay = null;
-    }
-    suggestionOverlay = createOverlay();
-    currentInputField = textInput;
-    updateOverlay();
-};
-
-// ----------------------
-// Mutation & Global Event Listeners
-// ----------------------
-
-const setupTextInput = (textInput) => {
-    if (!isInputField(textInput)) return;
-    textInput.addEventListener('input', handleStopType);
-    textInput.addEventListener('keydown', handleKeydown);
-    textInput.addEventListener('blur', handleBlur);
-    textInput.addEventListener('focus', handleFocus);
-};
-
-const cleanupTextInput = (textInput) => {
-    if (!isInputField(textInput)) return;
-    if (textInput === currentInputField) {
-        cleanupOverlay();
-    }
-    textInput.removeEventListener('input', handleStopType);
-    textInput.removeEventListener('keydown', handleKeydown);
-    textInput.removeEventListener('blur', handleBlur);
-    textInput.removeEventListener('focus', handleFocus);
-};
-
-const cleanupOverlay = () => {
-    if (suggestionOverlay) {
-        suggestionOverlay.remove();
-        suggestionOverlay = null;
-        currentInputField = null;
-    }
-};
-
+//mutation observer for dynamic text input
 const mutationObserver = new MutationObserver((mutations) => {
     mutations.forEach(mutation => {
+        //watch removed nodes
         mutation.removedNodes.forEach((node) => {
-            if (isInputField(node)) { 
+            if (isInputField(node)){ 
                 cleanupTextInput(node);  
-            } else if (node.querySelectorAll) {
-                node.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]').forEach(cleanupTextInput);
+            } else if (node.querySelectorAll){ //if node can have elements
+                const textInputs = node.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]');
+                textInputs.forEach(cleanupTextInput); 
             }
         });
+        //watch added nodes
         mutation.addedNodes.forEach((node) => {
-            if (isInputField(node)) { 
+            if (isInputField(node)){ 
                 setupTextInput(node);   
-            } else if (node.querySelectorAll) { 
-                node.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]').forEach(setupTextInput);
+            } else if (node.querySelectorAll){ 
+                const textInputs = node.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]');
+                textInputs.forEach(setupTextInput);
             }
-        });
-    });
+        })
+    })
 });
-mutationObserver.observe(document.body, { childList: true, subtree: true });
 
-document.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]').forEach(setupTextInput);
-
-window.addEventListener('scroll', updateOverlay);
-window.addEventListener('resize', updateOverlay);
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('scroll', updateOverlay);
+const setupAllInputFields = () => {
+    document.querySelectorAll('textarea, input[type="text"], input[type="search"], [contenteditable="true"]').forEach(setupTextInput);
 }
+
+mutationObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+});
+
+//setup all text input
+setupAllInputFields();
+
+window.addEventListener('scroll', updateOverlay); //scrolling
+window.addEventListener('resize', updateOverlay); //resizing
+window.visualViewport.addEventListener('scroll', updateOverlay); //zooming
+
+window.addEventListener('load', setupAllInputFields);
+document.addEventListener('DOMContentLoaded', setupAllInputFields);
